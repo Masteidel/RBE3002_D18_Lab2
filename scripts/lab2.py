@@ -35,13 +35,14 @@ class Robot:
 	  """
 
 	def driveStraight(self, speed, distance):
-		"""
-			This method should populate a ??? message type and publish it to ??? in order to move the robot
-		"""
+		
+
 		origin = copy.deepcopy(self._current) #hint:  use this
 		
 		
 	def spinWheels(self, v_left, v_right, time):
+        pub = rospy.Publisher("cmd_vel_mux/input/teleop", Twist, queue_size=10)
+
 		wheelbase = 0.16 # based on wheel track from http://emanual.robotis.com/docs/en/platform/turtlebot3/specifications/#specifications
 
 		lin_vel = (v_right + v_left)/2
@@ -57,7 +58,11 @@ class Robot:
 
 		driveStartTime = rospy.Time.now().secs
 
+        while(rospy.Time.now().secs - now <= time and not rospy.is_shutdown()):
+            pub.publish(twist_msg)
+        pub.publish(stop_msg)
 		
+
 	def rotate(self,angle):
 		"""
 			This method should populate a ??? message type and publish it to ??? in order to spin the robot
@@ -79,22 +84,22 @@ class Robot:
 			This is a callback that runs every 0.1s.
 			Updates this instance of Robot's internal position variable (self._current)
 		"""
-	# wait for and get the transform between two frames
-		self._odom_list.waitForTransform('YOUR_STRING_HERE', 'YOUR_STRING_HERE', rospy.Time(0), rospy.Duration(1.0))
-		(position, orientation) = self._odom_list.lookupTransform('YOUR_STRING_HERE','YOUR_STRING_HERE', rospy.Time(0)) 
-	# save the current position and orientation
-	self._current.position.x = position[0]
-		self._current.position.y = position[1]
-		self._current.orientation.x = orientation[0]
-		self._current.orientation.y = orientation[1]
-		self._current.orientation.z = orientation[2]
-		self._current.orientation.w = orientation[3]
+        # wait for and get the transform between two frames
+		self._odom_list.waitForTransform('odom', 'base_footprint', rospy.Time(0), rospy.Duration(1.0))
+		(position, orientation) = self._odom_list.lookupTransform('odom','base_footprint', rospy.Time(0)) 
+        # save the current position and orientation
+        self._current.position.x = position[0]
+        self._current.position.y = position[1]
+        self._current.orientation.x = orientation[0]
+        self._current.orientation.y = orientation[1]
+        self._current.orientation.z = orientation[2]
+        self._current.orientation.w = orientation[3]
 		
-	# create a quaternion
-	q = [self._current.orientation.x,
-			 self._current.orientation.y,
-			 self._current.orientation.z,
-			 self._current.orientation.w] 
+        # create a quaternion
+        q = [self._current.orientation.x,
+	       	 self._current.orientation.y,
+	       	 self._current.orientation.z,
+	       	 self._current.orientation.w] 
 
 	# convert the quaternion to roll pitch yaw
 		(roll, pitch, yaw) = euler_from_quaternion(q)    
