@@ -35,13 +35,34 @@ class Robot:
 	  """
 
 	def driveStraight(self, speed, distance):
+		pub = rospy.Publisher("cmd_vel_mux/input/teleop", Twist, queue_size=10)
 		
-
 		origin = copy.deepcopy(self._current) #hint:  use this
+
+		initialX = origin.position.x
+		initialY = origin.position.y
+
+		drive_msg = Twist()
+		stop_msg = Twist()
+
+		drive_msg.linear.x = speed
+		stop_msg.linear.x = 0.1
+
+		atTarget = False
+		while(not atTarget and not rospy.is_shutdown()):
+			currentX = origin.position.x
+			currentY = origin.position.y
+			currentDistance = math.sqrt(math.pow((currentX - initialX), 2) + math.pow((currentY - initialY), 2))
+		if(currentDistance >= distance):
+			atTarget = True
+			pub.publish(stop_msg)
+		else:
+			pub.publish(drive_msg)
+			rospy.sleep(0.15)
 		
 		
 	def spinWheels(self, v_left, v_right, time):
-        pub = rospy.Publisher("cmd_vel_mux/input/teleop", Twist, queue_size=10)
+		pub = rospy.Publisher("cmd_vel_mux/input/teleop", Twist, queue_size=10)
 
 		wheelbase = 0.16 # based on wheel track from http://emanual.robotis.com/docs/en/platform/turtlebot3/specifications/#specifications
 
@@ -58,9 +79,9 @@ class Robot:
 
 		driveStartTime = rospy.Time.now().secs
 
-        while(rospy.Time.now().secs - now <= time and not rospy.is_shutdown()):
-            pub.publish(twist_msg)
-        pub.publish(stop_msg)
+		while(rospy.Time.now().secs - now <= time and not rospy.is_shutdown()):
+			pub.publish(twist_msg)
+		pub.publish(stop_msg)
 		
 
 	def rotate(self,angle):
@@ -84,22 +105,22 @@ class Robot:
 			This is a callback that runs every 0.1s.
 			Updates this instance of Robot's internal position variable (self._current)
 		"""
-        # wait for and get the transform between two frames
+		# wait for and get the transform between two frames
 		self._odom_list.waitForTransform('odom', 'base_footprint', rospy.Time(0), rospy.Duration(1.0))
 		(position, orientation) = self._odom_list.lookupTransform('odom','base_footprint', rospy.Time(0)) 
-        # save the current position and orientation
-        self._current.position.x = position[0]
-        self._current.position.y = position[1]
-        self._current.orientation.x = orientation[0]
-        self._current.orientation.y = orientation[1]
-        self._current.orientation.z = orientation[2]
-        self._current.orientation.w = orientation[3]
+		# save the current position and orientation
+		self._current.position.x = position[0]
+		self._current.position.y = position[1]
+		self._current.orientation.x = orientation[0]
+		self._current.orientation.y = orientation[1]
+		self._current.orientation.z = orientation[2]
+		self._current.orientation.w = orientation[3]
 		
-        # create a quaternion
-        q = [self._current.orientation.x,
-	       	 self._current.orientation.y,
-	       	 self._current.orientation.z,
-	       	 self._current.orientation.w] 
+		# create a quaternion
+		q = [self._current.orientation.x,
+			 self._current.orientation.y,
+			 self._current.orientation.z,
+			 self._current.orientation.w] 
 
 	# convert the quaternion to roll pitch yaw
 		(roll, pitch, yaw) = euler_from_quaternion(q)    
