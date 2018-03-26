@@ -16,8 +16,8 @@ class Robot:
 		self._current = null # initlize correctly 
 		self._odom_list = tf.TransformListener()
 		rospy.Timer(rospy.Duration(.1), self.timerCallback)
-		self._vel_pub = rospy.Publisher('YOUR_STRING_HERE', ..., queue_size=1)
-		rospy.Subscriber('YOUR_STRING_HERE', ..., self.navToPose, queue_size=1) # handle nav goal events
+		self._vel_pub = rospy.Publisher('cmd_vel_mux/input/teleop', Twist, queue_size=1)
+		rospy.Subscriber('move_base_simple/goal', PoseStamped, self.navToPose, queue_size=1) # handle nav goal events
 
 
 	def navToPose(self,goal):
@@ -26,7 +26,7 @@ class Robot:
 			then spin to match the goal orientation.
 		"""
 
-		self._odom_list.waitForTransform('YOUR_STRING_HERE', 'YOUR_STRING_HERE', rospy.Time(0), rospy.Duration(1.0))
+		self._odom_list.waitForTransform('odom', 'base_footprint', rospy.Time(0), rospy.Duration(1.0))
 		transGoal = self._odom_list.transformPose('YOUR_STRING_HERE', goal) # transform the nav goal from the global coordinate system to the robot's coordinate system
 
 	def executeTrajectory(self):
@@ -85,11 +85,8 @@ class Robot:
 		
 
 	def rotate(self,angle):
-		"""
-			This method should populate a ??? message type and publish it to ??? in order to spin the robot
-		"""
-		
-		
+		pub = rospy.Publisher("cmd_vel_mux/input/teleop", Twist, queue_size=10)
+
 		origin = copy.deepcopy(self._current)
 
 		q = [origin.orientation.x,
@@ -99,6 +96,37 @@ class Robot:
 
 		(roll, pitch, yaw) = euler_from_quaternion(q)
 		
+		if(angle > math.pi or angle < -math.pi):
+			print "angle is too large or too small"
+		else:
+			vel = Twist()
+			done = False
+
+			initialHeading = yaw
+
+			if(angle > 0):
+				vel.angular.z = 1
+			else:
+				vel.angular.z = -1
+
+			while(not done and not rospy.is_shutdown()):
+				currentHeading = yaw
+				diff = currentHeading - initialHeading
+
+				if(diff > math.pi):
+					error = angle - (diff - 2*math.pi)
+				elif(diff < math.pi):
+					error = angle - (diff + 2*math.pi)
+				else:
+					error = angle - diff
+
+				if(abs(error) >= math.radians(2.0)):
+					pub.publish(vel)
+				else:
+					done = True
+					vel.angular.z = 0
+					pub.publish(vel)
+
 
 	def timerCallback(self,evprent):
 		"""
