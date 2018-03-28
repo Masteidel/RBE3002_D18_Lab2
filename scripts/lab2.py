@@ -16,8 +16,8 @@ class Robot:
 		self._current = Pose() # initlize correctly 
 		self._odom_list = tf.TransformListener()
 		rospy.Timer(rospy.Duration(.1), self.timerCallback)
-		self._vel_pub = rospy.Publisher('cmd_vel_mux/input/teleop', Twist, queue_size=1)
-		rospy.Subscriber('move_base_simple/goal', PoseStamped, self.navToPose, queue_size=1) # handle nav goal events
+		self._vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
+		rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.navToPose, queue_size=1) # handle nav goal events
 
 
 	def navToPose(self,goal):
@@ -25,19 +25,57 @@ class Robot:
 			This is a callback function. It should exract data from goal, drive in a striaght line to reach the goal and 
 			then spin to match the goal orientation.
 		"""
-
+		origin = copy.deepcopy(self._current)
 		self._odom_list.waitForTransform('odom', 'base_footprint', rospy.Time(0), rospy.Duration(1.0))
 		transGoal = self._odom_list.transformPose('odom', goal) # transform the nav goal from the global coordinate system to the robot's coordinate system
+		goalPoseX = transGoal.pose.position.x	#x position of the goal
+		goalPoseY = transGoal.pose.position.y	#y position of the goal
+		odomW = transGoal.pose.orientation
+		q = [odomW.x, odomW.y, odomW.z, odomW.w]
+		roll, pitch, yaw = euler_from_quaternion(q)
+		goalPoseAng = yaw					#orientation of goal
+		initialX = origin.position.x				#Starting x position of turtlebot
+		initialY = origin.position.y				#Starting y position of turtlebot
+		#Rotate towards goal
+		if((goalPoseX - initialX) == 0):
+			if((goalPoseY - initialY) > 0):
+				print "spin!"
+				rotate(math.pi)
+			elif((goalPoseY - initialY) < 0):
+				print "spin!"
+				rotate(-math.pi)
+		else:
+			print "spin!"
+			rotate(math.atan2((goalPoseY - initialY), (goalPoseX - initialX)))
+		#Drive towards goal
+		print "move!"
+		driveStraight(0.2, math.sqrt(math.pow((goalPoseX - initialX), 2) + math.pow((goalPoseY - initialY), 2)))
+		q = [origin.orientation.x,
+			 origin.orientation.y,
+			 origin.orientation.z,
+			 origin.orientation.w]
+		roll, pitch, yaw = euler_from_quaternion(q)
+		initialAng = yaw	#Heading of turtlebot after reaching desired location
+		#Rotate to pose
+		if((goalPoseAng - initialAng) != 0):
+			if((goalPoseAng - initialAng) > math.pi):
+				print "spin!"
+				rotate((goalPoseAng - initialAng) - 2*math.pi)
+			elif((goalPoseAng - initialAng) < -math.pi):
+				print "spin!"
+				rotate((goalPoseAng - initialAng) + 2*math.pi)
+			else:
+				print "spin!"
+				rotate(goalPoseAng - initialAng)
+		print "done"
 
 	def executeTrajectory(self):
-		vdriveStraight(0.2, 0.6)
-		rotate(-math.pi/2)
-		driveStraight(0.2, 0.45)
-		rotate(3*math.pi/4)
+		self.vdriveStraight(0.2, 0.6)
+		self.rotate(-math.pi/2)
+		self.driveStraight(0.2, 0.45)
+		self.rotate(3*math.pi/4)
 
 	def driveStraight(self, speed, distance):
-		pub = rospy.Publisher("cmd_vel_mux/input/teleop", Twist, queue_size=10)
-		
 		origin = copy.deepcopy(self._current) #hint:  use this
 
 		initialX = origin.position.x
@@ -58,13 +96,11 @@ class Robot:
 			atTarget = True
 			pub.publish(stop_msg)
 		else:
-			pub.publish(drive_msg)
+			self._vel_pub.publish(drive_msg)
 			rospy.sleep(0.15)
 		
 		
 	def spinWheels(self, v_left, v_right, time):
-		pub = rospy.Publisher("cmd_vel_mux/input/teleop", Twist, queue_size=10)
-
 		wheelbase = 0.16 # based on wheel track from http://emanual.robotis.com/docs/en/platform/turtlebot3/specifications/#specifications
 
 		lin_vel = (v_right + v_left)/2
@@ -81,13 +117,11 @@ class Robot:
 		driveStartTime = rospy.Time.now().secs
 
 		while(rospy.Time.now().secs - now <= time and not rospy.is_shutdown()):
-			pub.publish(twist_msg)
-		pub.publish(stop_msg)
+			self._vel_pub.publish(twist_msg)
+		self._vel_pub.publish(stop_msg)
 		
 
 	def rotate(self,angle):
-		pub = rospy.Publisher("cmd_vel_mux/input/teleop", Twist, queue_size=10)
-
 		origin = copy.deepcopy(self._current)
 
 		q = [origin.orientation.x,
@@ -122,11 +156,11 @@ class Robot:
 					error = angle - diff
 
 				if(abs(error) >= math.radians(2.0)):
-					pub.publish(vel)
+					self._vel_pub.publish(vel)
 				else:
 					done = True
 					vel.angular.z = 0
-					pub.publish(vel)
+					self._vel_pub.publish(vel)
 
 
 	def timerCallback(self,evprent):
@@ -167,7 +201,7 @@ if __name__ == '__main__':
 	rospy.init_node('drive_base')
 	turtle = Robot()
 
-	executeTrajectory(self)
+	turtle.executeTrajectory()
 	
 	while  not rospy.is_shutdown():
 		pass    
