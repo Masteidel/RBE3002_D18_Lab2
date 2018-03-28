@@ -201,7 +201,7 @@ if __name__ == '__main__':
 	rospy.init_node('drive_base')
 	turtle = Robot()
 
-	turtle.executeTrajectory()
+	turtle.spinWheels(0.1, 0.1, 10)
 	
 	while  not rospy.is_shutdown():
 		pass    
