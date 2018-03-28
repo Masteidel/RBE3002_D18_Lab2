@@ -13,7 +13,7 @@ class Robot:
 			This constructor sets up class variables and pubs/subs
 		"""
 	
-		self._current = null # initlize correctly 
+		self._current = Pose() # initlize correctly 
 		self._odom_list = tf.TransformListener()
 		rospy.Timer(rospy.Duration(.1), self.timerCallback)
 		self._vel_pub = rospy.Publisher('cmd_vel_mux/input/teleop', Twist, queue_size=1)
@@ -27,12 +27,13 @@ class Robot:
 		"""
 
 		self._odom_list.waitForTransform('odom', 'base_footprint', rospy.Time(0), rospy.Duration(1.0))
-		transGoal = self._odom_list.transformPose('YOUR_STRING_HERE', goal) # transform the nav goal from the global coordinate system to the robot's coordinate system
+		transGoal = self._odom_list.transformPose('odom', goal) # transform the nav goal from the global coordinate system to the robot's coordinate system
 
 	def executeTrajectory(self):
-	  """
-		See lab manual for the dance the robot has to excute
-	  """
+		vdriveStraight(0.2, 0.6)
+		rotate(-math.pi/2)
+		driveStraight(0.2, 0.45)
+		rotate(3*math.pi/4)
 
 	def driveStraight(self, speed, distance):
 		pub = rospy.Publisher("cmd_vel_mux/input/teleop", Twist, queue_size=10)
@@ -46,7 +47,7 @@ class Robot:
 		stop_msg = Twist()
 
 		drive_msg.linear.x = speed
-		stop_msg.linear.x = 0.1
+		stop_msg.linear.x = 0
 
 		atTarget = False
 		while(not atTarget and not rospy.is_shutdown()):
@@ -166,7 +167,7 @@ if __name__ == '__main__':
 	rospy.init_node('drive_base')
 	turtle = Robot()
 
-	#test function calls here
+	executeTrajectory(self)
 	
 	while  not rospy.is_shutdown():
 		pass    
