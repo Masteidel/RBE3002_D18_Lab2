@@ -26,8 +26,8 @@ class Robot:
 			then spin to match the goal orientation.
 		"""
 		origin = copy.deepcopy(self._current)
-		self._odom_list.waitForTransform('odom', 'base_footprint', rospy.Time(0), rospy.Duration(1.0))
-		transGoal = self._odom_list.transformPose('odom', goal) # transform the nav goal from the global coordinate system to the robot's coordinate system
+		self._odom_list.waitForTransform('odom', 'base_link', rospy.Time(0), rospy.Duration(1.0))
+		transGoal = self._odom_list.transformPose('base_link', goal) # transform the nav goal from the global coordinate system to the robot's coordinate system
 		goalPoseX = transGoal.pose.position.x	#x position of the goal
 		goalPoseY = transGoal.pose.position.y	#y position of the goal
 		odomW = transGoal.pose.orientation
@@ -169,8 +169,8 @@ class Robot:
 			Updates this instance of Robot's internal position variable (self._current)
 		"""
 		# wait for and get the transform between two frames
-		self._odom_list.waitForTransform('odom', 'base_footprint', rospy.Time(0), rospy.Duration(1.0))
-		(position, orientation) = self._odom_list.lookupTransform('odom','base_footprint', rospy.Time(0)) 
+		self._odom_list.waitForTransform('odom', 'base_link', rospy.Time(0), rospy.Duration(1.0))
+		(position, orientation) = self._odom_list.lookupTransform('odom','base_link', rospy.Time(0)) 
 		# save the current position and orientation
 		self._current.position.x = position[0]
 		self._current.position.y = position[1]
