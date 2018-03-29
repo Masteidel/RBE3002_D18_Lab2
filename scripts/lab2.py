@@ -132,9 +132,9 @@ class Robot:
 		origin = copy.deepcopy(self._current)
 
 		q = [self._current.orientation.x,
-			 self._current.orientation.y,
-			 self._current.orientation.z,
-			 self._current.orientation.w] # quaternion nonsense
+		self._current.orientation.y,
+		self._current.orientation.z,
+		self._current.orientation.w] # quaternion nonsense
 
 		(roll, pitch, yaw) = euler_from_quaternion(q)
 		
@@ -151,10 +151,11 @@ class Robot:
 				vel.angular.z = -1
 
 			while(not done and not rospy.is_shutdown()):
-				q = [origin.orientation.x,
-					 origin.orientation.y,
-					 origin.orientation.z,
-					 origin.orientation.w]
+				q = [self._current.orientation.x,
+				self._current.orientation.y,
+				self._current.orientation.z,
+				self._current.orientation.w]
+				
 				(roll, pitch, yaw) = euler_from_quaternion(q)
 				currentHeading = yaw
 				print currentHeading
